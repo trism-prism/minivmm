@@ -9,8 +9,11 @@
 static uint64_t count[MAX_REASON];
 static uint64_t run_ns, handler_ns;	/* time inside KVM_RUN, time in the dispatcher */
 static uint64_t t_first, t_run, t_handler;
+static int enabled;
 
-/* The only clock read. Gating timestamps behind a flag needs a branch at each stats_* call site in exits.c too, since the begin/end pairs must stay matched. */
+void stats_enable(void) { enabled = 1; }
+
+/* The only clock read. Every stats_* function returns before reaching it unless stats_enable() was called. */
 static uint64_t now_ns(void)
 {
 	struct timespec ts;
@@ -20,6 +23,8 @@ static uint64_t now_ns(void)
 
 void stats_run_begin(void)
 {
+	if (!enabled)
+		return;
 	t_run = now_ns();
 	if (!t_first)
 		t_first = t_run;
@@ -27,12 +32,14 @@ void stats_run_begin(void)
 
 void stats_run_end(unsigned exit_reason)
 {
+	if (!enabled)
+		return;
 	run_ns += now_ns() - t_run;
 	count[exit_reason < MAX_REASON ? exit_reason : MAX_REASON - 1]++;
 }
 
-void stats_handler_begin(void) { t_handler = now_ns(); }
-void stats_handler_end(void) { handler_ns += now_ns() - t_handler; }
+void stats_handler_begin(void) { if (enabled) t_handler = now_ns(); }
+void stats_handler_end(void) { if (enabled) handler_ns += now_ns() - t_handler; }
 
 static const char *reason_name(unsigned r, char *buf, size_t n)
 {

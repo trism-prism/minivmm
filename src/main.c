@@ -17,6 +17,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "usage: minivmm [--stats] guest.bin\n");
 		return 2;
 	}
+	if (stats)
+		stats_enable();
 	signal(SIGPIPE, SIG_IGN); /* a closed stdout must not kill the VMM mid-run */
 	atexit(serial_flush); /* die() and any other exit path still emit what the guest printed */
 	struct vm v;
