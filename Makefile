@@ -40,7 +40,7 @@ endif
 
 build/guests/%.bin: guests/%.asm
 	@mkdir -p $(@D)
-	nasm -f bin -o $@ $<
+	nasm -f bin -Iguests/ -o $@ $<
 
 test:
 	@if [ -x tests/run.sh ]; then tests/run.sh; else echo "minivmm: tests/run.sh not present yet."; fi
