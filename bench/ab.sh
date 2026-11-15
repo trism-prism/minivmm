@@ -53,7 +53,9 @@ grep -qw hypervisor /proc/cpuinfo && nested="environment: virtualized (hyperviso
 read -r amed amin amax <<<"$(awk '{print $1}' "$tmp/pairs" | stat3)"
 read -r bmed bmin bmax <<<"$(awk '{print $2}' "$tmp/pairs" | stat3)"
 read -r dmed dmin dmax <<<"$(awk '{print $2 - $1}' "$tmp/pairs" | stat3)"
-verdict=$(awk -v d="$dmed" -v s="$(awk -v a="$amax" -v b="$amin" 'BEGIN{print a - b}')" 'BEGIN{if (d < 0) d = -d; print (d > s ? "difference larger than the spread of A" : "difference within noise")}')
+# Exact two-sided sign test on the per-pair B-A differences: robust to the outlier runs that make a range-based rule useless.
+read -r neg sign_p <<<"$(awk '{d = $2 - $1; if (d < 0) neg++; n++} END{k = (neg < n - neg ? neg : n - neg); t = 2 ^ -n; s = 0; for (i = 0; i <= k; i++) { s += t; t = t * (n - i) / (i + 1) } p = 2 * s; if (p > 1) p = 1; printf "%d %.4f", neg, p}' "$tmp/pairs")"
+verdict=$(awk -v p="$sign_p" 'BEGIN{print (p < 0.05 ? "distinguishable from noise" : "within noise")}')
 
 report() {
 	echo "date: $(date -Is)"
@@ -75,7 +77,8 @@ report() {
 	echo "A ns/exit median/min/max: $amed $amin $amax"
 	echo "B ns/exit median/min/max: $bmed $bmin $bmax"
 	echo "B-A per-pair diff median/min/max: $dmed $dmin $dmax"
-	echo "verdict: $verdict (|median diff| $(awk -v d="$dmed" 'BEGIN{print (d < 0 ? -d : d)}') vs A max-min $(awk -v a="$amax" -v b="$amin" 'BEGIN{printf "%.1f", a - b}'))"
+	echo "B faster in $neg of $pairs pairs; sign test p=$sign_p"
+	echo "verdict: $verdict (p < 0.05 counts as distinguishable; median diff $dmed ns/exit)"
 }
 mkdir -p "$(dirname "$out")"
 report >"$tmp/report"
