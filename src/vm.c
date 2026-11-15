@@ -3,11 +3,13 @@
 #include "util.h"
 
 #include <fcntl.h>
+#include <sys/eventfd.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 void vm_create(struct vm *v)
 {
+	v->evfd = -1;
 	/* MINIVMM_KVM overrides the device path; the tests use it to simulate a missing /dev/kvm. */
 	const char *dev = getenv("MINIVMM_KVM");
 	if (!dev)
@@ -64,7 +66,21 @@ void vm_destroy(struct vm *v)
 {
 	munmap(v->run, v->run_size);
 	munmap(v->ram, RAM_SIZE);
+	if (v->evfd >= 0)
+		close(v->evfd);
 	close(v->vcpu);
 	close(v->vm);
 	close(v->kvm);
+}
+
+/* Let KVM complete byte writes to a PIO port in the kernel: no exit to user space, the eventfd counter just counts them. Call before the first KVM_RUN. */
+void vm_ioeventfd(struct vm *v, uint16_t port)
+{
+	/* EFD_NONBLOCK so reading the counter after a run with zero writes returns instead of hanging. */
+	v->evfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+	if (v->evfd < 0)
+		die("eventfd failed: %s", strerror(errno));
+	/* No datamatch: any byte written to the port signals the eventfd. */
+	struct kvm_ioeventfd io = { .addr = port, .len = 1, .fd = v->evfd, .flags = KVM_IOEVENTFD_FLAG_PIO };
+	KIOCTL(v->vm, KVM_IOEVENTFD, &io);
 }

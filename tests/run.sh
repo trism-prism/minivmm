@@ -41,4 +41,9 @@ rc=$?
 [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ] && [[ $err == *"triple fault"* ]]
 check "fault triple fault" $?
 
+err=$(timeout 10 "$BIN" --stats --ioeventfd build/guests/ioevent.bin 2>&1 >/dev/null)
+rc=$?
+[ "$rc" -eq 0 ] && grep -qx "ioeventfd signals 3" <<<"$err"
+check "ioeventfd signals" $?
+
 [ $fails -eq 0 ]

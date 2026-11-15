@@ -12,6 +12,7 @@
 
 struct vm {
 	int kvm, vm, vcpu;
+	int evfd;	/* ioeventfd counter, -1 until vm_ioeventfd() */
 	uint8_t *ram;
 	struct kvm_run *run;
 	size_t run_size;
@@ -19,5 +20,6 @@ struct vm {
 
 void vm_create(struct vm *v);
 void vm_destroy(struct vm *v);
+void vm_ioeventfd(struct vm *v, uint16_t port);
 
 #endif

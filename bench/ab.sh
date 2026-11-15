@@ -3,6 +3,7 @@
 # Runs A,B,A,B,... (one discarded warm-up each) with stdout to /dev/null, no --stats, and times each run
 # externally, so no instrumentation is in the measurement. The per-run time includes taskset/exec startup (same for A and B).
 set -euo pipefail
+set -f # BIN_A/BIN_B are word-split command strings; never glob them (wrappers like env are not supported: the sha256 line hashes the first word)
 cd "$(dirname "$0")/.."
 pairs=11 cpu=11 label=ab force=0 guest= exits=
 cmdline="$0 $*"
@@ -19,7 +20,9 @@ shift $((OPTIND - 1))
 [[ $pairs =~ ^[0-9]+$ ]] && [ "$pairs" -ge 1 ] || { echo "-n must be an integer >= 1" >&2; usage; }
 binA=$1 binB=$2
 img=build/guests/$guest.bin
-for f in "$binA" "$binB" "$img"; do [ -f "$f" ] || { echo "missing $f" >&2; exit 1; }; done
+# BIN_A/BIN_B may be a command with arguments ('build/minivmm --ioeventfd'); the first word is the executable.
+read -r exeA _ <<<"$binA"; read -r exeB _ <<<"$binB"
+for f in "$exeA" "$exeB" "$img"; do [ -f "$f" ] || { echo "missing $f" >&2; exit 1; }; done
 # Catch a wrong -N: loop guests do N iterations plus the final debug-exit.
 n=$(sed -n 's/^%assign N \([0-9]*\).*/\1/p' "guests/$guest.asm" 2>/dev/null || true)
 if [ -n "$n" ] && [ $((n + 1)) -ne "$exits" ]; then echo "-N $exits disagrees with %assign N $n (+1 exit) in guests/$guest.asm" >&2; exit 1; fi
@@ -33,7 +36,7 @@ trap 'rm -rf "$tmp"' EXIT
 once() {
 	local s e
 	s=${EPOCHREALTIME/./}
-	taskset -c "$cpu" "$1" "$img" >/dev/null
+	taskset -c "$cpu" $1 "$img" >/dev/null
 	e=${EPOCHREALTIME/./}
 	awk -v us=$((e - s)) -v n="$exits" 'BEGIN{printf "%.1f", us * 1000 / n}'
 }
@@ -67,8 +70,8 @@ report() {
 	echo "pinned: cpu $cpu"
 	echo "command: $cmdline"
 	echo "guest: $guest, $exits exits per run, stdout to /dev/null, no --stats; wall time measured externally (includes exec startup, same for both)"
-	echo "A: $binA sha256 $(sha256sum "$binA" | cut -c1-16)"
-	echo "B: $binB sha256 $(sha256sum "$binB" | cut -c1-16)"
+	echo "A: $binA sha256 $(sha256sum "$exeA" | cut -c1-16)"
+	echo "B: $binB sha256 $(sha256sum "$exeB" | cut -c1-16)"
 	echo "pairs: $pairs (after 1 discarded warm-up of each, alternating A,B)"
 	echo
 	echo "per pair, ns/exit (A, B, B-A)"
