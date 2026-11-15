@@ -70,6 +70,7 @@ report() {
 }
 
 report >"$tmp/report"
+mkdir -p "$(dirname "$out")"
 mv "$tmp/report" "$out"
 cat "$out"
 echo "wrote $out" >&2
