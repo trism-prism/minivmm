@@ -41,3 +41,8 @@ Tried: `serial.c` buffers and flushes when full and once after the run (and via 
 Before: serial handler 226 ns per exit (range 211 to 238).
 After: serial handler 30 ns (range 28 to 30). The ranges do not overlap. In the alternating A/B (51 pairs, `2026-11-15-serial-buffer-ab.txt`) wall time per exit fell by a median of 156 ns (about 3%), faster in 34 of 51 pairs, sign test p = 0.024. An earlier 51-pair run of the same two binaries gave 241 ns, 36 of 51, p = 0.005.
 Not measured: bare metal. A guest that prints more per exit. The cost of the one final flush (outside the stats timing). The trade-off is that output of a killed or endlessly looping guest is lost until 4 KiB accumulates.
+
+### Take exit timestamps only with `--stats`
+Tried: `stats_*` return immediately unless `--stats` was given, so a normal run takes no clock reads (four per exit before, 22 to 32 ns each).
+Before / After: alternating A/B on `pio_loop`, 41 pairs, `2026-11-15-stats-gate-ab.txt`. Median wall per exit 5853 ns before, 5815 ns after. Median per-pair difference -100 ns (about 2%), faster in 22 of 41 pairs, sign test p = 0.76: **not distinguishable from noise**.
+Not measured: any real gain. The expected saving (about 100 ns, under 2%) is below what this machine can resolve with 41 pairs; this run also had outliers up to 11.5 µs. I kept the change anyway because it is simpler to reason about (no instrumentation when not asked for) and cannot slow anything down, but it is recorded as a no-measured-win.
