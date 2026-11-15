@@ -6,7 +6,7 @@
     make            # build/minivmm
     make guests     # build/guests/*.bin (make test does this too)
 
-QEMU is optional; without it the golden files are the only reference.
+QEMU is optional; without it the golden files are the only reference. gcc is the compiler used and tested; clang was not available here, so "clang also builds" is untested.
 
 ## Run
 
@@ -30,6 +30,11 @@ QEMU comparison: for hello, arith, memtest and exit_code, `tests/run.sh` also ru
     bench/exit_cost.sh -c CPU -l LABEL     # pinned; add -n RUNS (default 5), -u for unpinned
     build/minivmm --ioeventfd --stats pio_loop.bin  # 0xE9 writes handled in the kernel, to compare against the exit path
     build/minivmm --stats guests.bin       # exit counts and ns in KVM_RUN / handler, on stderr
+
+    bench/ab.sh -g GUEST -N EXITS -n PAIRS -c CPU -l LABEL 'BIN_A [args]' 'BIN_B [args]'
+                                           # alternating A/B, external wall time, exact sign test
+
+Use `ab.sh` for any before/after claim: it alternates the two commands run by run so machine drift hits both equally, and its verdict is a sign test on the per-pair differences. `-N` must equal the guest's loop count plus one (it checks against the guest source). To rebuild an earlier "before" binary, check out its commit and copy `build/minivmm` aside. Each file in `bench/results/` records its commit, flags, machine and the exact command, so any of them can be rerun; results files are never overwritten without `-f`.
 
 `exit_cost.sh` runs `pio_loop` (1M OUT to the 0xE9 sink), `mmio_loop` (1M reads of the unbacked VGA window) and `serial_loop` (200k bytes to 0x3F8, one `write(2)` each) after one discarded warm-up, and writes `bench/results/DATE-LABEL.txt` (machine, commit, command, per-run numbers, median/min/max). Numbers are ns per exit: wall is the whole loop divided by exit count, split into time inside `KVM_RUN` (guest entry/exit plus the kernel) and time in minivmm's handler. The remainder of wall is loop and timestamp overhead. `baseline_syscall` (raw `getppid`) gives the scale of one plain kernel crossing.
 
