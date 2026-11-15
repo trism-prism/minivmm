@@ -9,6 +9,7 @@ enum dev_result { DEV_NONE, DEV_OK, DEV_EXIT };	/* not mine, handled, handled an
 
 /* Port I/O: data points at `size` bytes, read from or written to the guest. */
 enum dev_result serial_io(uint16_t port, bool is_write, uint8_t *data, uint32_t size);
+void serial_flush(void);	/* write out buffered serial output; also registered with atexit, so call paths that die() flush too */
 enum dev_result debug_exit_io(uint16_t port, bool is_write, uint8_t *data, uint32_t size);
 
 /* MMIO: data points at `len` bytes. */

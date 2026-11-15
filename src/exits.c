@@ -30,6 +30,7 @@ static int handle_io(struct vm *v)
 		if (r == DEV_EXIT)
 			return p[0];
 		if (r == DEV_NONE) {
+			serial_flush(); /* keep guest output ahead of the diagnostic */
 			fprintf(stderr, "minivmm: unhandled I/O port %#x\n", run->io.port);
 			dump_regs(v);
 			return 1;
@@ -44,6 +45,7 @@ static int handle_mmio(struct vm *v)
 	/* A read's result is picked up by KVM from run->mmio.data on the next KVM_RUN. */
 	if (mmio_probe(run->mmio.phys_addr, run->mmio.is_write, run->mmio.data, run->mmio.len) != DEV_NONE)
 		return -1;
+	serial_flush(); /* keep guest output ahead of the diagnostic */
 	fprintf(stderr, "minivmm: unhandled MMIO access at %#llx\n", (unsigned long long)run->mmio.phys_addr);
 	dump_regs(v);
 	return 1;
@@ -59,6 +61,9 @@ int exits_run(struct vm *v)
 			if (errno != EINTR)
 				die("KVM_RUN failed: %s", strerror(errno));
 		stats_run_end(v->run->exit_reason);
+		if (v->run->exit_reason != KVM_EXIT_IO && v->run->exit_reason != KVM_EXIT_MMIO &&
+		    v->run->exit_reason != KVM_EXIT_HLT)
+			serial_flush(); /* every remaining case prints a diagnostic: guest output first */
 		switch (v->run->exit_reason) {
 		case KVM_EXIT_IO:
 		case KVM_EXIT_MMIO: {
