@@ -1,0 +1,21 @@
+#ifndef VM_H
+#define VM_H
+
+#include <linux/kvm.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define RAM_SIZE   (1u << 20)
+#define LOAD_ADDR  0x7C00u
+
+struct vm {
+	int kvm, vm, vcpu;
+	uint8_t *ram;
+	struct kvm_run *run;
+	size_t run_size;
+};
+
+void vm_create(struct vm *v);
+void vm_destroy(struct vm *v);
+
+#endif
