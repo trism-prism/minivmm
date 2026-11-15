@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Exit-cost benchmark. Usage: bench/exit_cost.sh [-n RUNS] [-c CPU] [-u] [-l LABEL] [-f]
 # -u runs unpinned; otherwise pinned to CPU (default 0). -f overwrites an existing results file.
+# BIN=path measures another binary (default build/minivmm).
 # Writes bench/results/DATE-LABEL.txt only if every run succeeded.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -17,6 +18,7 @@ done
 out=bench/results/$(date +%F)-$label.txt
 if [ -e "$out" ] && [ $force -eq 0 ]; then echo "$out exists; use -f to overwrite" >&2; exit 1; fi
 
+BIN=${BIN:-build/minivmm}
 make --no-print-directory all guests bench >/dev/null
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -54,7 +56,7 @@ report() {
 		echo "== $g"
 		: >"$tmp/$g"
 		for i in $(seq 0 "$runs"); do
-			s=$("${wrap[@]}" build/minivmm --stats build/guests/$g.bin 2>&1 >/dev/null) || { echo "$g failed: $s" >&2; exit 1; }
+			s=$("${wrap[@]}" "$BIN" --stats build/guests/$g.bin 2>&1 >/dev/null) || { echo "$g failed: $s" >&2; exit 1; }
 			line=$(echo "$s" | awk '/^total_exits/{n=$2} /^wall_ns/{w=$2} /^kvm_run_ns/{k=$2} /^handler_ns/{h=$2} END{if (n > 0) printf "%d %.1f %.1f %.1f", n, w/n, k/n, h/n}')
 			[ -n "$line" ] || { echo "$g reported no exits: $s" >&2; exit 1; }
 			[ "$i" -eq 0 ] && continue # warm-up
