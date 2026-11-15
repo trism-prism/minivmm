@@ -1,0 +1,71 @@
+date: 2026-11-15T15:37:39-05:00
+commit: 71c6f78, tree clean
+cpu model: 13th Gen Intel(R) Core(TM) i7-1355U
+kernel: 6.18.33.2-microsoft-standard-WSL2
+clocksource: tsc
+environment: virtualized (hypervisor flag set; KVM here is nested virtualization)
+pinned: cpu 11
+command: bench/ab.sh -g serial_loop -N 200001 -n 51 -c 11 -l serial-buffer-ab build/minivmm-before build/minivmm
+guest: serial_loop, 200001 exits per run, stdout to /dev/null, no --stats; wall time measured externally (includes exec startup, same for both)
+A: build/minivmm-before sha256 5ceaf9a7d67bced6
+B: build/minivmm sha256 08e06ff2bbbed598
+pairs: 51 (after 1 discarded warm-up of each, alternating A,B)
+
+per pair, ns/exit (A, B, B-A)
+pair 1: A 5894.0 B 6507.3 diff 613.3
+pair 2: A 6125.2 B 6108.3 diff -16.9
+pair 3: A 5547.6 B 5805.8 diff 258.2
+pair 4: A 6009.3 B 5569.7 diff -439.6
+pair 5: A 5986.4 B 5830.1 diff -156.3
+pair 6: A 5568.4 B 5209.8 diff -358.6
+pair 7: A 5191.7 B 5109.1 diff -82.6
+pair 8: A 5277.6 B 5208.5 diff -69.1
+pair 9: A 5410.7 B 6203.2 diff 792.5
+pair 10: A 5729.2 B 5448.1 diff -281.1
+pair 11: A 5468.8 B 5091.6 diff -377.2
+pair 12: A 5292.0 B 5088.4 diff -203.6
+pair 13: A 5370.1 B 5128.6 diff -241.5
+pair 14: A 5890.5 B 5251.4 diff -639.1
+pair 15: A 5649.5 B 5251.2 diff -398.3
+pair 16: A 5170.9 B 5271.2 diff 100.3
+pair 17: A 5693.4 B 5607.2 diff -86.2
+pair 18: A 6012.9 B 5921.3 diff -91.6
+pair 19: A 6151.5 B 5904.6 diff -246.9
+pair 20: A 6043.9 B 7065.3 diff 1021.4
+pair 21: A 6308.5 B 5095.7 diff -1212.8
+pair 22: A 5328.7 B 6293.8 diff 965.1
+pair 23: A 8200.4 B 8425.3 diff 224.9
+pair 24: A 8432.2 B 6209.9 diff -2222.3
+pair 25: A 6323.5 B 5472.7 diff -850.8
+pair 26: A 6125.2 B 5688.5 diff -436.7
+pair 27: A 5711.5 B 5845.1 diff 133.6
+pair 28: A 6051.9 B 5306.7 diff -745.2
+pair 29: A 5132.3 B 6467.6 diff 1335.3
+pair 30: A 9681.4 B 7317.7 diff -2363.7
+pair 31: A 6404.9 B 5988.8 diff -416.1
+pair 32: A 7050.8 B 5319.8 diff -1731.0
+pair 33: A 5294.3 B 5110.8 diff -183.5
+pair 34: A 5192.0 B 5908.7 diff 716.7
+pair 35: A 5948.3 B 5330.3 diff -618.0
+pair 36: A 5511.0 B 5272.9 diff -238.1
+pair 37: A 5645.8 B 5483.4 diff -162.4
+pair 38: A 5308.5 B 6692.6 diff 1384.1
+pair 39: A 6016.4 B 5967.5 diff -48.9
+pair 40: A 5686.0 B 5909.0 diff 223.0
+pair 41: A 5729.2 B 4891.4 diff -837.8
+pair 42: A 5353.7 B 5588.7 diff 235.0
+pair 43: A 6590.4 B 5705.7 diff -884.7
+pair 44: A 6068.3 B 5925.1 diff -143.2
+pair 45: A 5712.1 B 5768.3 diff 56.2
+pair 46: A 5564.2 B 5828.8 diff 264.6
+pair 47: A 5725.5 B 6385.9 diff 660.4
+pair 48: A 5347.8 B 5149.2 diff -198.6
+pair 49: A 5270.5 B 5190.9 diff -79.6
+pair 50: A 5471.6 B 5671.4 diff 199.8
+pair 51: A 8406.3 B 6205.7 diff -2200.6
+
+A ns/exit median/min/max: 5712.1 5132.3 9681.4
+B ns/exit median/min/max: 5688.5 4891.4 8425.3
+B-A per-pair diff median/min/max: -156.3 -2363.7 1384.1
+B faster in 34 of 51 pairs; sign test p=0.0241
+verdict: distinguishable from noise (p < 0.05 counts as distinguishable; median diff -156.3 ns/exit)
