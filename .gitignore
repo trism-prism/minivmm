@@ -1,0 +1,10 @@
+build/
+*.o
+*.bin
+*.elf
+*.d
+bench/results/*.tmp
+*.log
+core
+core.*
+perf.data*
