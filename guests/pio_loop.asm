@@ -1,6 +1,6 @@
 %include "boot.inc"
 %assign N 1000000
-    mov dx, 0x3F8
+    mov dx, 0xE9
     xor al, al
     mov ecx, N
 .loop:

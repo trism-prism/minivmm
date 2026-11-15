@@ -1,4 +1,5 @@
 #include "exits.h"
+#include "stats.h"
 #include "util.h"
 #include "dev/dev.h"
 
@@ -53,13 +54,17 @@ int exits_run(struct vm *v)
 	for (;;) {
 		/* Enter the guest; returns when it exits to userspace. */
 		/* A signal (e.g. Ctrl-Z) interrupts KVM_RUN with EINTR; just re-enter. */
+		stats_run_begin();
 		while (ioctl(v->vcpu, KVM_RUN, (void *)0) < 0)
 			if (errno != EINTR)
 				die("KVM_RUN failed: %s", strerror(errno));
+		stats_run_end(v->run->exit_reason);
 		switch (v->run->exit_reason) {
 		case KVM_EXIT_IO:
 		case KVM_EXIT_MMIO: {
+			stats_handler_begin();
 			int rc = v->run->exit_reason == KVM_EXIT_IO ? handle_io(v) : handle_mmio(v);
+			stats_handler_end();
 			if (rc >= 0)
 				return rc;
 			break;

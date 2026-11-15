@@ -6,7 +6,7 @@ GSRCS   := $(wildcard guests/*.asm)
 GBINS   := $(patsubst guests/%.asm,build/guests/%.bin,$(GSRCS))
 BIN     := build/minivmm
 
-.PHONY: all asan guests test test-asan clean
+.PHONY: all asan guests bench test test-asan clean
 
 all:
 ifeq ($(strip $(SRCS)),)
@@ -41,6 +41,12 @@ endif
 build/guests/%.bin: guests/%.asm $(wildcard guests/*.inc)
 	@mkdir -p $(@D)
 	nasm -f bin -Iguests/ -o $@ $<
+
+bench: build/bench/baseline_syscall build/bench/clock_cost
+
+build/bench/%: bench/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -o $@ $<
 
 test: all guests
 	@BIN=$(BIN) tests/run.sh; a=$$?; BIN=$(BIN) tests/negative.sh; b=$$?; exit $$((a | b))

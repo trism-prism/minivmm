@@ -23,6 +23,17 @@ Each check prints one PASS or FAIL line; the scripts exit nonzero if any failed.
 
 QEMU comparison: for hello, arith, memtest and exit_code, `tests/run.sh` also runs the same image under `qemu-system-x86_64 -enable-kvm` and requires identical stdout and exit status (QEMU's isa-debug-exit reports `(status << 1) | 1`, which the script decodes). If `qemu-system-x86_64` is missing or `/dev/kvm` is not accessible it prints `qemu: skipped` and only the golden files are checked. Golden files live in `tests/expected/` (`G.out` stdout, `G.rc` exit status).
 
+## Bench
+
+    make bench guests                      # build/bench/baseline_syscall and the guests
+    bench/pick_cpu.sh                      # syscall time on each CPU; fastest is a proxy for a P-core
+    bench/exit_cost.sh -c CPU -l LABEL     # pinned; add -n RUNS (default 5), -u for unpinned
+    build/minivmm --stats guests.bin       # exit counts and ns in KVM_RUN / handler, on stderr
+
+`exit_cost.sh` runs `pio_loop` (1M OUT to the 0xE9 sink), `mmio_loop` (1M reads of the unbacked VGA window) and `serial_loop` (200k bytes to 0x3F8, one `write(2)` each) after one discarded warm-up, and writes `bench/results/DATE-LABEL.txt` (machine, commit, command, per-run numbers, median/min/max). Numbers are ns per exit: wall is the whole loop divided by exit count, split into time inside `KVM_RUN` (guest entry/exit plus the kernel) and time in minivmm's handler. The remainder of wall is loop and timestamp overhead. `baseline_syscall` (raw `getppid`) gives the scale of one plain kernel crossing.
+
+Caveat: under WSL2 KVM runs nested inside Hyper-V, so every exit costs far more than on bare metal and is noisy; compare runs from the same machine state, not absolute values to other systems.
+
 ## Environment
 
 - KVM is required. Check it with `ls -l /dev/kvm`; your user must be in the `kvm` group (`sudo usermod -aG kvm $USER`, then log in again).

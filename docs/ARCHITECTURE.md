@@ -8,8 +8,9 @@
 | `src/exits.c` | `KVM_RUN` loop and dispatcher: port I/O (looped over `count`) and MMIO go to the devices; HLT returns 0; a debug-exit write returns its byte; triple fault, entry failure, unowned port/address and any other exit print a register dump and return 1 |
 | `src/dev/dev.h` | Device handler signatures and the `DEV_NONE/OK/EXIT` result |
 | `src/dev/serial.c` | Port 0x3F8 OUT: one `write(1)` per byte (unbuffered baseline); 0x3FD IN: 0x60 so polling guests proceed |
-| `src/dev/debug_exit.c` | Port 0xF4 OUT (byte): ends the run, byte is the exit status |
+| `src/dev/debug_exit.c` | Port 0xF4 OUT (byte): ends the run, byte is the exit status; port 0xE9 OUT (byte): bench sink, discarded |
 | `src/dev/mmio_probe.c` | Guest-physical 0xA0000-0xBFFFF (no RAM): reads zero, writes discarded |
+| `src/stats.c` | Per-exit-reason counts plus ns inside `KVM_RUN` and ns in the dispatcher (`CLOCK_MONOTONIC_RAW`, read on every exit); `--stats` prints them to stderr at exit |
 | `src/util.h` | `die()` and the checked `KIOCTL` macro |
 
 Each device is a function taking (port or address, direction, data, size); port I/O tries serial then debug-exit; MMIO goes to the probe and treats `DEV_NONE` from all as an unhandled access.
