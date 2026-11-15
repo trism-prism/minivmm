@@ -1,0 +1,41 @@
+date: 2026-11-15T15:55:06-05:00
+commit: b3cb862, tree clean
+cpu model: 13th Gen Intel(R) Core(TM) i7-1355U
+kernel: 6.18.33.2-microsoft-standard-WSL2
+clocksource: tsc
+environment: virtualized (hypervisor flag set; KVM here is nested virtualization)
+pinned: cpu 11
+command: bench/ab.sh -g pio_loop -N 1000001 -n 21 -c 11 -l ioeventfd-ab build/minivmm build/minivmm --ioeventfd
+guest: pio_loop, 1000001 exits per run, stdout to /dev/null, no --stats; wall time measured externally (includes exec startup, same for both)
+A: build/minivmm sha256 d58858e9fae4b680
+B: build/minivmm --ioeventfd sha256 d58858e9fae4b680
+pairs: 21 (after 1 discarded warm-up of each, alternating A,B)
+
+per pair, ns/exit (A, B, B-A)
+pair 1: A 6240.2 B 4625.6 diff -1614.6
+pair 2: A 5561.6 B 4133.4 diff -1428.2
+pair 3: A 5177.6 B 4134.0 diff -1043.6
+pair 4: A 5119.7 B 4290.1 diff -829.6
+pair 5: A 5432.4 B 4206.1 diff -1226.3
+pair 6: A 5133.6 B 4422.3 diff -711.3
+pair 7: A 5549.8 B 4649.4 diff -900.4
+pair 8: A 5108.7 B 4457.6 diff -651.1
+pair 9: A 5198.2 B 4141.7 diff -1056.5
+pair 10: A 5074.0 B 3866.6 diff -1207.4
+pair 11: A 5281.6 B 4252.5 diff -1029.1
+pair 12: A 5122.4 B 4017.8 diff -1104.6
+pair 13: A 5266.4 B 4453.4 diff -813.0
+pair 14: A 5117.5 B 3840.5 diff -1277.0
+pair 15: A 5205.0 B 3885.6 diff -1319.4
+pair 16: A 4954.4 B 3942.3 diff -1012.1
+pair 17: A 4985.9 B 4006.1 diff -979.8
+pair 18: A 5283.7 B 3841.5 diff -1442.2
+pair 19: A 6766.4 B 4354.1 diff -2412.3
+pair 20: A 5353.8 B 4093.8 diff -1260.0
+pair 21: A 6740.1 B 4942.8 diff -1797.3
+
+A ns/exit median/min/max: 5205.0 4954.4 6766.4
+B ns/exit median/min/max: 4141.7 3840.5 4942.8
+B-A per-pair diff median/min/max: -1104.6 -2412.3 -651.1
+B faster in 21 of 21 pairs; sign test p=0.0000
+verdict: distinguishable from noise (p < 0.05 counts as distinguishable; median diff -1104.6 ns/exit)

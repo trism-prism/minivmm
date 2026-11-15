@@ -46,3 +46,10 @@ Not measured: bare metal. A guest that prints more per exit. The cost of the one
 Tried: `stats_*` return immediately unless `--stats` was given, so a normal run takes no clock reads (four per exit before, 22 to 32 ns each).
 Before / After: alternating A/B on `pio_loop`, 41 pairs, `2026-11-15-stats-gate-ab.txt`. Median wall per exit 5853 ns before, 5815 ns after. Median per-pair difference -100 ns (about 2%), faster in 22 of 41 pairs, sign test p = 0.76: **not distinguishable from noise**.
 Not measured: any real gain. The expected saving (about 100 ns, under 2%) is below what this machine can resolve with 41 pairs; this run also had outliers up to 11.5 µs. I kept the change anyway because it is simpler to reason about (no instrumentation when not asked for) and cannot slow anything down, but it is recorded as a no-measured-win.
+
+### `--ioeventfd`: complete the sink-port write in the kernel
+Tried: opt-in `--ioeventfd` registers `KVM_IOEVENTFD` (PIO, port `0xE9`, no datamatch) so a guest write signals an eventfd and never returns to my process. The eventfd counter is read after the run to check no write was lost (1,000,000 writes gave 1,000,000 signals).
+Before: `pio_loop`, same binary without the flag, alternating A/B, 21 pairs, `2026-11-15-ioeventfd-ab.txt`. Median 5205 ns per write.
+After: with the flag, median 4142 ns per write. Median per-pair difference -1105 ns (about 21%), faster in 21 of 21 pairs, p < 0.0001: **distinguishable from noise**, and the only one of the four changes that moves the dominant cost.
+Not measured: bare metal (the saving is the user-space round trip; how much of that survives without nested virtualization is unknown). MMIO exits (`KVM_IOEVENTFD` supports MMIO too, not attempted). Any use where the VMM needs the written data: an ioeventfd only counts writes, so it fits a doorbell or the bench sink, not the serial port.
+Correction to an earlier note: one pinned single run with `--stats` measured 5272 ns per write with the flag and I briefly read that as "no gain". It was one sample taken between drifting runs. The alternating A/B above is the measurement that counts.
