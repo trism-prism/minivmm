@@ -6,7 +6,7 @@ GSRCS   := $(wildcard guests/*.asm)
 GBINS   := $(patsubst guests/%.asm,build/guests/%.bin,$(GSRCS))
 BIN     := build/minivmm
 
-.PHONY: all asan guests test clean
+.PHONY: all asan guests test test-asan clean
 
 all:
 ifeq ($(strip $(SRCS)),)
@@ -38,12 +38,15 @@ else
 	@$(MAKE) --no-print-directory $(GBINS)
 endif
 
-build/guests/%.bin: guests/%.asm
+build/guests/%.bin: guests/%.asm $(wildcard guests/*.inc)
 	@mkdir -p $(@D)
 	nasm -f bin -Iguests/ -o $@ $<
 
-test:
-	@if [ -x tests/run.sh ]; then tests/run.sh; else echo "minivmm: tests/run.sh not present yet."; fi
+test: all guests
+	@BIN=$(BIN) tests/run.sh; a=$$?; BIN=$(BIN) tests/negative.sh; b=$$?; exit $$((a | b))
+
+test-asan: asan guests
+	@BIN=build/minivmm-asan tests/run.sh; a=$$?; BIN=build/minivmm-asan tests/negative.sh; b=$$?; exit $$((a | b))
 
 clean:
 	rm -rf build

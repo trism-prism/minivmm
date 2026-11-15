@@ -8,9 +8,13 @@
 
 void vm_create(struct vm *v)
 {
-	v->kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
+	/* MINIVMM_KVM overrides the device path; the tests use it to simulate a missing /dev/kvm. */
+	const char *dev = getenv("MINIVMM_KVM");
+	if (!dev)
+		dev = "/dev/kvm";
+	v->kvm = open(dev, O_RDWR | O_CLOEXEC);
 	if (v->kvm < 0)
-		die("cannot open /dev/kvm: %s", strerror(errno));
+		die("cannot open %s: %s", dev, strerror(errno));
 	/* Refuse any KVM API other than the stable version 12. */
 	int api = KIOCTL(v->kvm, KVM_GET_API_VERSION, 0);
 	if (api != 12)
