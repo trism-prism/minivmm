@@ -23,12 +23,16 @@ void vm_create(struct vm *v)
 		      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (v->ram == MAP_FAILED)
 		die("mmap guest RAM failed: %s", strerror(errno));
-	struct kvm_userspace_memory_region mr = {
-		.slot = 0, .guest_phys_addr = 0,
-		.memory_size = RAM_SIZE, .userspace_addr = (uintptr_t)v->ram,
+	/* Two slots leave 0xA0000-0xBFFFF (the VGA window) unbacked, so guest accesses exit as MMIO. */
+	struct kvm_userspace_memory_region mr[2] = {
+		{ .slot = 0, .guest_phys_addr = 0, .memory_size = VGA_BASE,
+		  .userspace_addr = (uintptr_t)v->ram },
+		{ .slot = 1, .guest_phys_addr = VGA_END, .memory_size = RAM_SIZE - VGA_END,
+		  .userspace_addr = (uintptr_t)v->ram + VGA_END },
 	};
-	/* Map host RAM into the guest physical address space at 0. */
-	KIOCTL(v->vm, KVM_SET_USER_MEMORY_REGION, &mr);
+	/* Map host RAM into the guest physical address space around the hole. */
+	KIOCTL(v->vm, KVM_SET_USER_MEMORY_REGION, &mr[0]);
+	KIOCTL(v->vm, KVM_SET_USER_MEMORY_REGION, &mr[1]);
 
 	/* One vCPU, id 0; returns the vCPU fd. */
 	v->vcpu = KIOCTL(v->vm, KVM_CREATE_VCPU, 0);

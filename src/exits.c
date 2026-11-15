@@ -1,5 +1,6 @@
 #include "exits.h"
 #include "util.h"
+#include "dev/dev.h"
 
 static void dump_regs(struct vm *v)
 {
@@ -15,6 +16,38 @@ static void dump_regs(struct vm *v)
 		r.rax, r.rbx, r.rcx, r.rdx);
 }
 
+/* Port I/O, repeated run->io.count times for string ops. Returns -1 to continue, else the exit code. */
+static int handle_io(struct vm *v)
+{
+	struct kvm_run *run = v->run;
+	bool w = run->io.direction == KVM_EXIT_IO_OUT;
+	uint8_t *p = (uint8_t *)run + run->io.data_offset;
+	for (uint32_t i = 0; i < run->io.count; i++, p += run->io.size) {
+		enum dev_result r = serial_io(run->io.port, w, p, run->io.size);
+		if (r == DEV_NONE)
+			r = debug_exit_io(run->io.port, w, p, run->io.size);
+		if (r == DEV_EXIT)
+			return p[0];
+		if (r == DEV_NONE) {
+			fprintf(stderr, "minivmm: unhandled I/O port %#x\n", run->io.port);
+			dump_regs(v);
+			return 1;
+		}
+	}
+	return -1;
+}
+
+static int handle_mmio(struct vm *v)
+{
+	struct kvm_run *run = v->run;
+	/* A read's result is picked up by KVM from run->mmio.data on the next KVM_RUN. */
+	if (mmio_probe(run->mmio.phys_addr, run->mmio.is_write, run->mmio.data, run->mmio.len) != DEV_NONE)
+		return -1;
+	fprintf(stderr, "minivmm: unhandled MMIO access at %#llx\n", (unsigned long long)run->mmio.phys_addr);
+	dump_regs(v);
+	return 1;
+}
+
 int exits_run(struct vm *v)
 {
 	for (;;) {
@@ -24,10 +57,26 @@ int exits_run(struct vm *v)
 			if (errno != EINTR)
 				die("KVM_RUN failed: %s", strerror(errno));
 		switch (v->run->exit_reason) {
+		case KVM_EXIT_IO:
+		case KVM_EXIT_MMIO: {
+			int rc = v->run->exit_reason == KVM_EXIT_IO ? handle_io(v) : handle_mmio(v);
+			if (rc >= 0)
+				return rc;
+			break;
+		}
 		case KVM_EXIT_HLT:
 			return 0;
 		case KVM_EXIT_SHUTDOWN:
 			fprintf(stderr, "minivmm: guest triple fault\n");
+			dump_regs(v);
+			return 1;
+		case KVM_EXIT_FAIL_ENTRY:
+			fprintf(stderr, "minivmm: VM entry failed, hardware reason %#llx\n",
+				(unsigned long long)v->run->fail_entry.hardware_entry_failure_reason);
+			dump_regs(v);
+			return 1;
+		case KVM_EXIT_INTERNAL_ERROR:
+			fprintf(stderr, "minivmm: KVM internal error, suberror %u\n", v->run->internal.suberror);
 			dump_regs(v);
 			return 1;
 		default:

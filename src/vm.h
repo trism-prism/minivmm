@@ -6,6 +6,8 @@
 #include <stdint.h>
 
 #define RAM_SIZE   (1u << 20)
+#define VGA_BASE   0xA0000u	/* start of the unbacked MMIO hole */
+#define VGA_END    0xC0000u
 #define LOAD_ADDR  0x7C00u
 
 struct vm {
