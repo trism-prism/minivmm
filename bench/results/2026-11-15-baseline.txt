@@ -1,0 +1,43 @@
+date: 2026-11-15T15:22:51-05:00
+commit: 206b062, tree clean
+cpu model: 13th Gen Intel(R) Core(TM) i7-1355U
+kernel: 6.18.33.2-microsoft-standard-WSL2
+clocksource: tsc
+CFLAGS: -std=c11 -O2 -Wall -Wextra -Werror
+environment: virtualized (hypervisor flag set; KVM here is nested virtualization)
+pinned: cpu 11
+command: bench/exit_cost.sh -c 11 -l baseline
+runs: 5 (after 1 discarded warm-up)
+clock_gettime ns/call: 22.0
+
+baseline getppid syscall, median of 5, ns/call: 107.7
+note: each exit takes 4 clock_gettime calls, about 4 x 22.0 ns of the wall-minus-parts gap and of the handler figure.
+
+per run: wall, KVM_RUN and handler ns per exit (wall = whole loop incl. timestamp/loop overhead)
+== pio_loop
+run 1: exits 1000001 wall 7716.0 kvm_run 7590.9 handler 40.5
+run 2: exits 1000001 wall 5833.2 kvm_run 5736.2 handler 30.7
+run 3: exits 1000001 wall 5281.1 kvm_run 5189.6 handler 28.8
+run 4: exits 1000001 wall 5648.1 kvm_run 5549.7 handler 32.0
+run 5: exits 1000001 wall 5458.7 kvm_run 5365.3 handler 29.6
+wall ns/exit median/min/max: 5648.1 5281.1 7716.0
+kvm_run ns/exit median/min/max: 5549.7 5189.6 7590.9
+handler ns/exit median/min/max: 30.7 28.8 40.5
+== mmio_loop
+run 1: exits 1000001 wall 7465.3 kvm_run 7342.3 handler 50.7
+run 2: exits 1000001 wall 8357.7 kvm_run 8229.4 handler 53.8
+run 3: exits 1000001 wall 6468.6 kvm_run 6360.2 handler 44.3
+run 4: exits 1000001 wall 6576.5 kvm_run 6465.7 handler 45.8
+run 5: exits 1000001 wall 6528.4 kvm_run 6420.5 handler 44.5
+wall ns/exit median/min/max: 6576.5 6468.6 8357.7
+kvm_run ns/exit median/min/max: 6465.7 6360.2 8229.4
+handler ns/exit median/min/max: 45.8 44.3 53.8
+== serial_loop
+run 1: exits 200001 wall 5705.7 kvm_run 5412.8 handler 227.1
+run 2: exits 200001 wall 5908.3 kvm_run 5603.0 handler 238.0
+run 3: exits 200001 wall 5303.0 kvm_run 5028.8 handler 212.6
+run 4: exits 200001 wall 5288.0 kvm_run 5013.3 handler 210.6
+run 5: exits 200001 wall 5667.5 kvm_run 5376.6 handler 226.1
+wall ns/exit median/min/max: 5667.5 5288.0 5908.3
+kvm_run ns/exit median/min/max: 5376.6 5013.3 5603.0
+handler ns/exit median/min/max: 226.1 210.6 238.0
