@@ -2,9 +2,9 @@
 
 A minimal KVM virtual machine monitor in C. It runs a tiny flat 16-bit real-mode guest binary loaded at 0x7C00, handles its port I/O and MMIO exits, and exits with the guest's status code. Output is checked against QEMU/KVM, and the cost of a VM exit is measured.
 
-Status: complete. Seven guests, golden and QEMU-diff tests, negative tests, sanitizer build, and an exit-cost benchmark with four recorded experiments.
 
-Results in one paragraph (nested KVM under WSL2, so absolute numbers are inflated; details and caveats in `docs/DECISIONS.md`): a port-I/O exit costs about 5.3 µs and an MMIO exit about 6.5 µs, against about 0.1 µs for a plain syscall. Almost all of that is inside `KVM_RUN`, so changes to my own handler barely register. Buffering serial output cut handler time from 226 to 30 ns and wall time by about 3%. Gating timestamps showed no distinguishable change. Handling the port write with `ioeventfd` was the only change that moved the dominant cost: about 21% per write.
+## Results
+A port-I/O exit costs about 5.3 µs and an MMIO exit about 6.5 µs, against about 0.1 µs for a plain syscall. Almost all of that is inside `KVM_RUN`, so changes to my own handler barely register. Buffering serial output cut handler time from 226 to 30 ns and wall time by about 3%. Gating timestamps showed no distinguishable change. Handling the port write with `ioeventfd` was the only change that moved the dominant cost: about 21% per write.
 
 ## Requirements
 
